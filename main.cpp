@@ -16,6 +16,22 @@ using namespace std;
 
 const double INF = numeric_limits<double>::max();
 
+
+struct Comp{
+
+Comp(std::vector<double> &f) {this->f=f;}
+bool operator()( int a ,int b) {
+	  if (f[a]>=f[b]) {
+		  return false;
+	  }
+	   else {
+		  return true;
+	  }
+}
+std::vector<double> f;
+};
+
+
 struct qPoint {
 	Point_2 xy1;
 	Point_2 xy2;
@@ -130,11 +146,6 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 
 		return 0;
 
-	//TODO: implement
-	//checks if paths are legal with respect to the obstacles and each other.
-	//return 1 if robot 1 needs to go first
-	//return -1 if robot 2 needs to go first
-	//return 0 if not legal edge
 return true;
 }
 
@@ -352,8 +363,21 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 
 	trapezoidalPl   pl(free_space_arrangement);
 
-	//TODO: get bbox of outer polygon
-	double xmin=0;double xmax=0;double ymin=0;double ymax=0;
+
+	CGAL::Bbox_2 bbox = outer_obstacle.bbox();
+
+	for (Polygon_2 p: obstacles) {
+
+		bbox = bbox+p.bbox();
+
+	}
+
+	bbox = bbox + Segment_2(start1,start2).bbox();
+
+	bbox = bbox + Segment_2(end1,end2).bbox();
+
+	double xmin = bbox.xmin(), xmax = bbox.xmax(),
+	ymin = bbox.ymin(), ymax = bbox.ymax();
 
 
 	vector<qPoint> V; //Vertices;
@@ -437,18 +461,13 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 	bool foundPath = false;
 
 	std::set<int> Open; std::set<int> Closed;
+	std::set<int,Comp> K_set_curr {Comp{f}};
 
 	Open.insert(0);
 
 	 while (!Open.empty()) {
 
-		 //TODO: finding minimum can be done more efficiently
 		 int min_f_ind = *(Open.begin());
-		 for (auto i=Open.begin(); i!=Open.end(); i++) {
-			 if (f[*i]<f[min_f_ind]) {
-				 min_f_ind = *i;
-			 }
-		 }
 		qPoint v = V[min_f_ind];
 		if (v.index == 1) {foundPath=true; break;}
 		Closed.insert(min_f_ind);
@@ -461,6 +480,7 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 			}
 			auto temp = cost(v,q,free_space_arrangement);
 
+			if (temp.second==0) {continue;}
 			Open.insert(q.index);
 
 			if (g[q.index]<=(g[v.index] + temp.first)) { //this is not a better path

@@ -7,6 +7,13 @@
 
 using namespace std;
 
+
+#define STEPS 128
+#define Nbbox 2
+#define Nrand 300
+#define K 50
+#define TIMEOUT 100
+
 const double INF = numeric_limits<double>::max();
 
 struct qPoint {
@@ -14,25 +21,139 @@ struct qPoint {
 	Point_2 xy2;
 	int index;
 	double vec[4];
+
+
+	  bool operator==(const qPoint& p) const
+	  {
+	    return (index==p.index)  ;
+	  }
+	  bool  operator!=(const qPoint& p) const { return ! (*this == p); }
 };
 
-double heuristic(Point_2 p1, Point_2 p2) {
-	return 0;
+struct Construct_coord_iterator {
+  typedef  const double* result_type;
+  const double* operator()(const qPoint& p) const
+  { return static_cast<const double*>(p.vec); }
+  const double* operator()(const qPoint& p, int)  const
+  { return static_cast<const double*>(p.vec+3); }
+};
+
+double heuristic(qPoint q1, qPoint q2) {
+	//euclidean heuristic
+	return std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
+
 }
 
 qPoint newRandomQPoint (double xmin,double xmax,double ymin,double ymax) {
 	//TODO: implement
-	return new qPoint;
+	qPoint rand;
+	return rand;
 }
 
-bool isLegalConfiguration(qPoint p,Arrangment_2 arr) {
-	//TODO: implement
+bool isLegalConfiguration(qPoint p,Arrangement_2 &arr,trapezoidalPl &pl) {
+
+	auto location = pl.locate(p.xy1);
+
+	Arrangement_2::Face_const_handle face;
+
+	if(CGAL::assign(face, location)) {
+		if (face->data()==true)  {//is obstacle
+	}
+
+		return false;
+
+	}
+
+	location = pl.locate(p.xy2);
+
+	if(CGAL::assign(face, location)) {
+		if (face->data()==true)  {//is obstacle
+	}
+
+		return false;
+
+	}
+
 	return true;
 }
 
-double dist(qPoint p1, qPoint p2) {
+double dist(qPoint q1, qPoint q2) {
+
+	return std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
+
+}
+
+//return 1 if robot 1 goes first
+//return 2 if robot 2 goes first
+
+int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
+
+
+	//check if path 1 is ok
+
+	Segment_2 robot1 = Segment_2(q1.xy1,q2.xy1);
+	std::vector<CGAL::Object> zone_elems;
+	CGAL::zone(arr,robot1,std::back_inserter(zone_elems));
+	Arrangement_2::Face_const_handle face;
+	  for ( int i = 0; i < (int)zone_elems.size(); ++i )
+	    {
+	      if (assign(face, zone_elems[i]) ) {
+	    	  if (face->data()==false) { //if obstacle
+	    		  return 0;
+	    	  }
+	      }
+	    }
+
+	  //check if path 2 is ok
+
+		Segment_2 robot2 = Segment_2(q1.xy2,q2.xy2);
+		CGAL::zone(arr,robot2,std::back_inserter(zone_elems));
+		  for ( int i = 0; i < (int)zone_elems.size(); ++i )
+		    {
+		      if (assign(face, zone_elems[i]) ) {
+		    	  if (face->data()==false) { //if obstacle
+		    		  return 0;
+		    	  }
+		      }
+		    }
+
+
+	//for robot 1 path segment, check if distance to endpoints of robot 2 path segment are at least 10 (can be done in O(1)- simple algebra)
+		  // if yes, return 1
+
+		if (std::sqrt(CGAL::squared_distance(robot1,robot2.source()).to_double())>=1 &&std::sqrt(CGAL::squared_distance(robot1,robot2.target()).to_double())>=10 ) {
+			return 1;
+		}
+		if (std::sqrt(CGAL::squared_distance(robot2,robot1.source()).to_double())>=1 &&std::sqrt(CGAL::squared_distance(robot2,robot1.target()).to_double())>=10 ) {
+			return -1;
+		}
+
+		return 0;
+
 	//TODO: implement
-	return 0;
+	//checks if paths are legal with respect to the obstacles and each other.
+	//return 1 if robot 1 needs to go first
+	//return -1 if robot 2 needs to go first
+	//return 0 if not legal edge
+return true;
+}
+
+std::pair<double,int> cost (qPoint q1, qPoint q2, Arrangement_2 arr) {
+
+	//if movement is legal, get cost of movement.
+	//Otherwise - return infinite cost
+	int j = localPlanner(q1,q2,arr);
+	std::pair<double,int> temp;
+	if (j!=0) {
+		temp.first = std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
+		temp.second = j;
+	} else {
+		temp.first=INF;
+		temp.second = 0;
+	}
+
+	return temp;
+
 }
 
 struct Distance {
@@ -40,7 +161,7 @@ struct Distance {
   typedef double FT;
   typedef CGAL::Dimension_tag<4> D;
   double transformed_distance(const qPoint& p1, const qPoint& p2) const {
-    return dist_1(p1,p2);
+    return dist(p1,p2);
   }
   double min_distance_to_rectangle(const qPoint& p,
                    const CGAL::Kd_tree_rectangle<FT,D>& b) const {
@@ -50,11 +171,11 @@ struct Distance {
     h=p.xy1.y().to_double();
     if (h < b.min_coord(1)) distance += (b.min_coord(1)-h)*(b.min_coord(1)-h);
     if (h > b.max_coord(1)) distance += (h-b.max_coord(1))*(h-b.min_coord(1));
-    h=p.xy2.x();
+    h=p.xy2.x().to_double();
     if (h < b.min_coord(2)) distance += (b.min_coord(2)-h)*(b.min_coord(2)-h);
     if (h > b.max_coord(2)) distance += (h-b.max_coord(2))*(h-b.max_coord(2));
     return distance;
-    h=p.xy2.y();
+    h=p.xy2.y().to_double();
     if (h < b.min_coord(3)) distance += (b.min_coord(3)-h)*(b.min_coord(3)-h);
     if (h > b.max_coord(3)) distance += (h-b.max_coord(3))*(h-b.max_coord(3));
     return distance;
@@ -130,7 +251,7 @@ struct Distance {
     h=p.xy2.y().to_double();
     dists[3] = (h >= (b.min_coord(3)+b.max_coord(3))/2.0) ?
                 (h-b.min_coord(3)) : (b.max_coord(3)-h);
-    return dists[0] * dists[0] + dists[1] * dists[1] + dists[2] * dists[2] + dist[3] * dist[3];
+    return dists[0] * dists[0] + dists[1] * dists[1] + dists[2] * dists[2] + dists[3] * dists[3];
   }
   double new_distance(double& dist, double old_off, double new_off,
               int /* cutting_dimension */)  const {
@@ -186,6 +307,13 @@ void print_point(Point_2  p) {
 bool has(set<int> s, int x) {
 	return s.find(x) != s.end();
 }
+
+typedef CGAL::Dimension_tag<4> D;
+typedef CGAL::Search_traits<double, qPoint, const double*, Construct_coord_iterator, D> Traits;
+typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
+typedef K_neighbor_search::Tree Tree;
+typedef typename CGAL::Fuzzy_sphere<Traits> Fuzzy_Circle;
+
 vector<pair<Point_2, Point_2>>
 findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, const Point_2 &end2,
          const Polygon_2 &outer_obstacle, vector<Polygon_2> &obstacles) {
@@ -222,12 +350,33 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		CGAL::insert(free_space_arrangement,addSeg);
 	}
 
+	trapezoidalPl   pl(free_space_arrangement);
+
+	//TODO: get bbox of outer polygon
+	double xmin=0;double xmax=0;double ymin=0;double ymax=0;
+
+
+	vector<qPoint> V; //Vertices;
+
+	qPoint qstart, qend;
+	qstart.xy1 = start1;
+	qstart.xy2 = start2;
+	qstart.index = 0;
+	qend.xy1 = end1;
+	qend.xy1 = end2;
+	qend.index = 1;
+	V.push_back(qstart);
+	V.push_back(qend);
+
+	int currInd = 2;
+
+
 	//N random configurations
 	int currRandPoints=0;
 	int counter =0;
 	while (counter < TIMEOUT && currRandPoints<Nrand ) {
 		qPoint temp = newRandomQPoint(xmin,xmax,ymin,ymax);
-			if(isLegalConfiguration(temp, free_space_arrangement)) {
+			if(isLegalConfiguration(temp, free_space_arrangement,pl)) {
 				temp.index = currInd;
 				V.push_back(temp);
 				currInd++;
@@ -293,6 +442,7 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 
 	 while (!Open.empty()) {
 
+		 //TODO: finding minimum can be done more efficiently
 		 int min_f_ind = *(Open.begin());
 		 for (auto i=Open.begin(); i!=Open.end(); i++) {
 			 if (f[*i]<f[min_f_ind]) {
@@ -309,11 +459,8 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 			if (Closed.find(q.index)!=Closed.end()) { //node already expanded
 				continue;
 			}
-			auto temp = cost(v,q,queryHandler);
+			auto temp = cost(v,q,free_space_arrangement);
 
-
-
-			if (temp.second==2) {continue;}
 			Open.insert(q.index);
 
 			if (g[q.index]<=(g[v.index] + temp.first)) { //this is not a better path
@@ -321,211 +468,16 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 			}
 			parent[q.index] = v.index; g[q.index]=g[v.index]+temp.first;
 			f[q.index] = g[q.index]+heuristic(q,V[1]);
-			Orient[q.index] = temp.second; //direction of rotation;
+			Orient[q.index] = temp.second; //which robot goes first
 
 
 		}
 	}
-
-	 std::cout<<"exited loop"<<endl;
 
 	std::vector<int> path;
 
-	//start and end vertices are only connected
 
-	//find trapezoids in optimal path for red robot, using a* with euclidean distance heurisitc (robot is point in configuration space)
-	//Open is set of indexes
-	//Closed is set of indexes
-
-
-/*
-	// copy vertices to vector
-	vector<Point_2> vertices_vectors;
-	std::copy(vertices.begin(), vertices.end(), std::back_inserter(vertices_vectors));
-
-	cout << " Vertices are : " << endl;
-	// create point to index map
-	map<Point_2, int> vertex2index;
-	for(int i=0; i<vertices_vectors.size(); i++){
-		cout << i << " " << point2string(vertices_vectors.at(i)) << endl;
-		vertex2index.insert(pair<Point_2,int>(vertices_vectors.at(i), i));
-	}
-
-	// initialize graph
-	int numV = vertices.size();
-	double** graph = (double**) calloc(numV, sizeof(double *));
-	for(int i=0; i<numV; i++) {
-		graph[i] = (double*) calloc(numV, sizeof(double));
-		for(int j=0; j<numV; j++)
-			graph[i][j] = (i == j ? 0 : INF);
-	}
-
-	list<Point_2> startEndPositions;
-	startEndPositions.push_back(start1);
-	startEndPositions.push_back(start2);
-	startEndPositions.push_back(end1);
-	startEndPositions.push_back(end2);
-
-	// go over throgh all faces, check if free and add appropriate edges
-	for(Arrangement_2::Face_handle face = free_space_arrangement.faces_begin(); face != free_space_arrangement.faces_end(); ++face) {
-		bool is_obstacle = true;
-		if(face->has_outer_ccb()) {
-			Arrangement_2::Ccb_halfedge_circulator beginning = face->outer_ccb();
-			vector<set<int>> orientations;
-
-			// init orientations
-			for(int i=0; i<startEndPositions.size(); i++) {
-					orientations.push_back(set<int>());
-				}
-
-			auto circular = beginning;
-			vector<Point_2> face_vertices;
-
-			do {
-				// how to convert circular and get halfedge ??
-				Point_2 source = circular->source()->point(),
-						target = circular->target()->point();
-
-				// remember orientation to start/end positions
-				int i = 0;
-				for(auto s = startEndPositions.begin();
-						s != startEndPositions.end(); s++, i++) {
-					set<int> orientation_set = orientations.at(i);
-					CGAL::Orientation o = CGAL::orientation(source, target, *s);
-					if(o == CGAL::LEFT_TURN)
-						orientation_set.insert(-1);
-					else if(o == CGAL::RIGHT_TURN)
-						orientation_set.insert(1);
-					else orientation_set.insert(0);
-
-				}
-
-//				cout << "half-edge : [";
-//				print_point(source);
-//				cout << " , ";
-//				print_point(target);
-//				cout << " ]" << endl;
-
-
-
-				face_vertices.push_back(source);
-
-				// check if face includes wall. if it doesn't => obstacle
-				for (auto wall=segList.begin(); wall!=segList.end(); wall++) {
-					if((wall->source() == source && wall->target() == target) ||
-							(wall->target() == source && wall->source() == target)) {
-						is_obstacle = false;
-						break;
-					}
-
-				}
-
-			}
-			while(++circular != beginning);
-
-//			vector<Point_2 *> toErase;
-			int i=0;
-			for(auto s = startEndPositions.begin();
-					s != startEndPositions.end(); s++, i++) {
-				set<int> orientation_set = orientations.at(i);
-				if( !has(orientation_set, -1) || !has(orientation_set, 1)) {
-					// start/end position in this face(or on boundry)
-					face_vertices.push_back(*s);
-					if(!has(orientation_set,0)) {
-						// we can be sure that it is not on boundry
-						// we don't have to look for this point anymore
-//						toErase.push_back(s);
-						s = startEndPositions.erase(s);
-					}
-				}
-			}
-
-//			for(Point_2 **x = toErase.begin(); x!=toErase.end(); x++) {
-//				startEndPositions.erase(*x);
-//			}
-			// connect edges
-			if(face->has_outer_ccb() && !is_obstacle) {
-				for(int i=0; i<face_vertices.size() - 1; i++) {
-					Point_2 p1 = face_vertices.at(i);
-
-					//if not in vertices it is probably an outer-bound vertex
-					if ( vertex2index.find(p1) != vertex2index.end()) {
-						int index1 = vertex2index.at(p1);
-						for(int j=i+1; j<face_vertices.size(); j++) {
-							Point_2 p2 = face_vertices.at(j);
-							if(vertex2index.find(p2) != vertex2index.end()) {
-								int index2 = vertex2index.at(p2);
-								double dist = sqrt(CGAL::squared_distance(p1, p2).to_double());
-
-								graph[index1][index2] = dist;
-								graph[index2][index1] = dist;
-							}
-						}
-					}
-
-				}
-			}
-		}
-
-	}
-
-	cout << "number of vertices : "<< numV << endl;
-	for(int i=0; i< numV; i++) {
-		for(int j = 0; j < numV; j++) {
-			if(graph[i][j] == INF)
-				cout << "inf ";
-			else cout << graph[i][j] << " ";
-		}
-		cout << endl;
-	}
-
-	//output mesh structure using ipe
-	std::ofstream myFile;
-	std::ifstream Template;
-	 std::string line2;
-	Template.open("ipe2.xml");
-	myFile.open("Ipe.xml");
-	while (std::getline(Template,line2)) {
-		myFile <<line2<<"\n";
-	}
-	myFile << "<page>\n";
-	for (auto i=free_space_arrangement.vertices_begin(); i!=free_space_arrangement.vertices_end(); i++) {
-	myFile << "<use name=\"mark/disk(sx)\" " << "pos= \"" << i->point().x().to_double() << " " << i->point().y().to_double() << "\" size=\"normal\" stroke=\"black\"/>\n";
-	}
-	for (auto i = free_space_arrangement.edges_begin(); i!=free_space_arrangement.edges_end(); i++) {
-	Point_2 p1 = i->source()->point();
-	Point_2 p2 = i->target()->point();
-	myFile << "<path stroke = \"black\"> \n"  << p1.x().to_double() <<" "<< p1.y().to_double() <<" m \n" << p2.x().to_double() <<" "<<p2.y().to_double() << " l \n" << "</path> \n";
-	}
-	myFile << "</page>\n";
-	myFile << "</ipe>\n";
-	myFile.close();
-*/
-		//convert triplets to trapezoid
-		//go over all faces created in the decomposition
-		//go over the trapezoids
-//
-//
-//
-//	 auto i = free_space_arrangement.faces_begin();
-//
-//	 while (!i->has_outer_ccb()) {
-//		 i++;
-//	 }
-//
-//
-//	 Arrangement_2::Ccb_halfedge_circulator outerCCb = i->outer_ccb();
-//
-//	 cout<<"face circulator"<<endl;
-//	 auto j = outerCCb;
-//
-//	 do {
-//		 cout<<j->target()->point()<<" "<<j->source()->point()<<endl;
-//		 j++;
-//
-//	 }	while (j!=outerCCb);
-
-
+	//TODO: return path
 
 	return vector<pair<Point_2, Point_2>>();
 }

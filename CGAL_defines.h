@@ -21,6 +21,9 @@
 #include <CGAL/Arr_vertical_decomposition_2.h>
 #include <CGAL/Boolean_set_operations_2/Gps_default_dcel.h>
 #include <CGAL/Arr_walk_along_line_point_location.h>
+#include <CGAL/Arr_trapezoid_ric_point_location.h>
+#include <CGAL/Fuzzy_sphere.h>
+#include<CGAL/Search_traits_3.h>
 
 
 typedef typename CGAL::Gmpq Number_type;
@@ -41,11 +44,7 @@ typedef typename Arrangement_2::Vertex_const_handle Arr2_Vertex;
 typedef typename Arrangement_2::Halfedge_const_handle Arr2_hEdge;
 typedef typename Arrangement_2::Face_const_handle Arr2_Face;
 typedef CGAL::Arr_walk_along_line_point_location<Arrangement_2> Walk_pl;
-typedef typename CGAL::Dimension_tag<3> D;
-typedef typename CGAL::Search_traits<double, qPoint, const double*, Construct_coord_iterator, D> Traits;
-typedef typename CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
-typedef typename K_neighbor_search::Tree Tree;
-typedef typename CGAL::Fuzzy_sphere<Traits> Fuzzy_Circle;
+typedef typename CGAL::Arr_trapezoid_ric_point_location<Arrangement_2> trapezoidalPl;
 
 
 #endif //INC_5_CGAL_DEFINES_H

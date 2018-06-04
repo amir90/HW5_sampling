@@ -9,10 +9,136 @@ using namespace std;
 
 const double INF = numeric_limits<double>::max();
 
+struct qPoint {
+	Point_2 xy1;
+	Point_2 xy2;
+	int index;
+	double vec[4];
+};
 
 double heuristic(Point_2 p1, Point_2 p2) {
 	return 0;
 }
+
+qPoint newRandomQPoint (double xmin,double xmax,double ymin,double ymax) {
+	//TODO: implement
+	return new qPoint;
+}
+
+bool isLegalConfiguration(qPoint p,Arrangment_2 arr) {
+	//TODO: implement
+	return true;
+}
+
+double dist(qPoint p1, qPoint p2) {
+	//TODO: implement
+	return 0;
+}
+
+struct Distance {
+  typedef qPoint Query_item;
+  typedef double FT;
+  typedef CGAL::Dimension_tag<4> D;
+  double transformed_distance(const qPoint& p1, const qPoint& p2) const {
+    return dist_1(p1,p2);
+  }
+  double min_distance_to_rectangle(const qPoint& p,
+                   const CGAL::Kd_tree_rectangle<FT,D>& b) const {
+    double distance(0.0), h = p.xy1.x().to_double();
+    if (h < b.min_coord(0)) distance += (b.min_coord(0)-h)*(b.min_coord(0)-h);
+    if (h > b.max_coord(0)) distance += (h-b.max_coord(0))*(h-b.max_coord(0));
+    h=p.xy1.y().to_double();
+    if (h < b.min_coord(1)) distance += (b.min_coord(1)-h)*(b.min_coord(1)-h);
+    if (h > b.max_coord(1)) distance += (h-b.max_coord(1))*(h-b.min_coord(1));
+    h=p.xy2.x();
+    if (h < b.min_coord(2)) distance += (b.min_coord(2)-h)*(b.min_coord(2)-h);
+    if (h > b.max_coord(2)) distance += (h-b.max_coord(2))*(h-b.max_coord(2));
+    return distance;
+    h=p.xy2.y();
+    if (h < b.min_coord(3)) distance += (b.min_coord(3)-h)*(b.min_coord(3)-h);
+    if (h > b.max_coord(3)) distance += (h-b.max_coord(3))*(h-b.max_coord(3));
+    return distance;
+  }
+  double min_distance_to_rectangle(const qPoint& p,
+                   const CGAL::Kd_tree_rectangle<FT,D>& b,std::vector<double>& dists){
+    double distance(0.0), h = p.xy1.x().to_double();
+    if (h < b.min_coord(0)){
+      dists[0] = (b.min_coord(0)-h);
+      distance += dists[0]*dists[0];
+    }
+    if (h > b.max_coord(0)){
+      dists[0] = (h-b.max_coord(0));
+      distance += dists[0]*dists[0];
+    }
+    h=p.xy1.y().to_double();
+    if (h < b.min_coord(1)){
+      dists[1] = (b.min_coord(1)-h);
+      distance += dists[1]*dists[1];
+    }
+    if (h > b.max_coord(1)){
+      dists[1] = (h-b.max_coord(1));
+      distance += dists[1]*dists[1];
+    }
+    h=p.xy2.x().to_double();
+    if (h < b.min_coord(2)){
+      dists[2] = (b.min_coord(2)-h);
+      distance += dists[2]*dists[2];
+    }
+    if (h > b.max_coord(2)){
+      dists[2] = (h-b.max_coord(2));
+      distance += dists[2]*dists[2];
+    }
+    h=p.xy2.x().to_double();
+    if (h < b.min_coord(3)){
+      dists[3] = (b.min_coord(3)-h);
+      distance += dists[3]*dists[3];
+    }
+    if (h > b.max_coord(3)){
+      dists[3] = (h-b.max_coord(3));
+      distance += dists[3]*dists[3];
+    }
+    return distance;
+  }
+  double max_distance_to_rectangle(const qPoint& p,
+                   const CGAL::Kd_tree_rectangle<FT,D>& b) const {
+    double h = p.xy1.x().to_double();
+    double d0 = (h >= (b.min_coord(0)+b.max_coord(0))/2.0) ?
+                (h-b.min_coord(0))*(h-b.min_coord(0)) : (b.max_coord(0)-h)*(b.max_coord(0)-h);
+    h=p.xy1.y().to_double();
+    double d1 = (h >= (b.min_coord(1)+b.max_coord(1))/2.0) ?
+                (h-b.min_coord(1))*(h-b.min_coord(1)) : (b.max_coord(1)-h)*(b.max_coord(1)-h);
+    h=p.xy2.x().to_double();
+    double d2 = (h >= (b.min_coord(2)+b.max_coord(2))/2.0) ?
+                (h-b.min_coord(2))*(h-b.min_coord(2)) : (b.max_coord(2)-h)*(b.max_coord(2)-h);
+    h=p.xy2.y().to_double();
+    double d3 = (h >= (b.min_coord(3)+b.max_coord(3))/2.0) ?
+                (h-b.min_coord(3))*(h-b.min_coord(3)) : (b.max_coord(3)-h)*(b.max_coord(3)-h);
+    return d0 + d1 + d2+d3;
+  }
+  double max_distance_to_rectangle(const qPoint& p,
+                   const CGAL::Kd_tree_rectangle<FT,D>& b,std::vector<double>& dists){
+	double h = p.xy1.x().to_double();
+    dists[0] = (h >= (b.min_coord(0)+b.max_coord(0))/2.0) ?
+                (h-b.min_coord(0)) : (b.max_coord(0)-h);
+
+    h=p.xy1.y().to_double();
+    dists[1] = (h >= (b.min_coord(1)+b.max_coord(1))/2.0) ?
+                (h-b.min_coord(1)) : (b.max_coord(1)-h);
+    h=p.xy2.x().to_double();
+    dists[2] = (h >= (b.min_coord(2)+b.max_coord(2))/2.0) ?
+                (h-b.min_coord(2)) : (b.max_coord(2)-h);
+    h=p.xy2.y().to_double();
+    dists[3] = (h >= (b.min_coord(3)+b.max_coord(3))/2.0) ?
+                (h-b.min_coord(3)) : (b.max_coord(3)-h);
+    return dists[0] * dists[0] + dists[1] * dists[1] + dists[2] * dists[2] + dist[3] * dist[3];
+  }
+  double new_distance(double& dist, double old_off, double new_off,
+              int /* cutting_dimension */)  const {
+    return dist + new_off*new_off - old_off*old_off;
+  }
+  double transformed_distance(double d) const { return d*d; }
+  double inverse_of_transformed_distance(double d) { return std::sqrt(d); }
+}; // end of struct Distance
 
 Point_2 loadPoint_2(std::ifstream &is) {
     Kernel::FT x, y;
@@ -96,132 +222,114 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		CGAL::insert(free_space_arrangement,addSeg);
 	}
 
-
-	//Trapezoidal decomposition
-	typedef std::list<std::pair<Arrangement_2::Vertex_const_handle,
-	                              std::pair<CGAL::Object, CGAL::Object> > >
-	Vert_decomp_list;
-	Vert_decomp_list vd_list;
-	CGAL::decompose(free_space_arrangement, std::back_inserter(vd_list));
-
-	Arr2_Vertex vert;
-	Arr2_hEdge edge;
-	Vector_2 horizontalVec = Point_2(0,1)-Point_2(0,0);
-	Line_2 line;
-	Segment_2 seg;
-	list<Segment_2> segList;
-
-	for(Vert_decomp_list::iterator it = vd_list.begin(); it != vd_list.end(); ++it) {
-		Point_2 p = it->first->point();
-		double x = p.x().to_double();
-		double y = p.y().to_double();
-
-		//check upper element
-		//TODO: wrap all polygons with a bounding box slightly larger.
-		if (assign(edge,it->second.first)) { //if upper element is non fictitious half-edge
-			if (!edge->is_fictitious()) {
-				//todo connect vertex to edge with vertical segment
-				line = Line_2(it->first->point(),horizontalVec);
-				seg = Segment_2(edge->source()->point(),edge->target()->point());
-				auto result = (CGAL::intersection(line,seg));
-				Point_2* p = boost::get<Point_2 >(&*(result));
-				Segment_2 addSeg(*p,it->first->point());
-				segList.push_back(addSeg);
-	//			CGAL::insert(free_space_arrangement,addSeg);
+	//N random configurations
+	int currRandPoints=0;
+	int counter =0;
+	while (counter < TIMEOUT && currRandPoints<Nrand ) {
+		qPoint temp = newRandomQPoint(xmin,xmax,ymin,ymax);
+			if(isLegalConfiguration(temp, free_space_arrangement)) {
+				temp.index = currInd;
+				V.push_back(temp);
+				currInd++;
+				currRandPoints++;
+				counter=0;
 			}
-		}
-		if (assign(vert,it->second.first)) { //if upper element is non fictitious half-edge
-				Segment_2 addSeg(vert->point(),it->first->point());
-				segList.push_back(addSeg);
-	//			 CGAL::insert(free_space_arrangement,addSeg);
-
-			}
-
-		//check lower elements
-		if (assign(edge,it->second.second)) { //if upper element is non fictitious half-edge
-			if (!edge->is_fictitious()) {
-				//todo connect vertex to edge with vertical segment
-				line = Line_2(it->first->point(),horizontalVec);
-				seg = Segment_2(edge->source()->point(),edge->target()->point());
-				auto result = (CGAL::intersection(line,seg));
-				Point_2* p = boost::get<Point_2 >(&*(result));
-				Segment_2 addSeg(*p,it->first->point());
-				segList.push_back(addSeg);
-	//			CGAL::insert(free_space_arrangement,addSeg);
-			}
-		}
-		if (assign(vert,it->second.second)) { //if upper element is non fictitious half-edge
-				Segment_2 addSeg(vert->point(),it->first->point());
-				segList.push_back(addSeg);
-	//			 CGAL::insert(free_space_arrangement,addSeg);
-
-			}
-		}
-
-	//add horizontal segments to arrangment
-	for (auto i=segList.begin(); i!=segList.end(); i++) {
-		CGAL::insert(free_space_arrangement,*i);
-		vertices.insert(i->source());
-		vertices.insert(i->target());
+		counter++;
 	}
 
 
-	//the vertices are the middle of legal walls
-	int N=0;
-	std::vector<Arr2_hEdge> wallVec;
-			for (auto i=free_space_arrangement.edges_begin(); i!=free_space_arrangement.edges_end(); i++) {
+	int N=V.size();
 
-			if ((i->face()->data()==false) && (i->twin()->face()->data()==false)) {
-				i->set_data(N); //illegal wall
-				N++;
-				wallVec.push_back(i->twin()->twin());
-			} else {
-				i->set_data(-1);
-			}
-			}
+	//Range implementation;
 
-	//algorithm:
+	Tree tree;
 
-	std::vector<double> g(N,INF);
+	tree.insert(V.begin(),V.end());
 
-	std::vector<double> f(N,INF);
+	double radius = 3/2*pow((log2(N)/N),(1/3));//*(bbox.xmax()-bbox.xmin());//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.ymin()));
+
+	std::vector<std::list<qPoint>> neighbors(N);
+
+	for (qPoint q: V ) { //sorted by index
+
+//		Fuzzy_Circle fc(q,radius);
+
+//		tree.search(std::back_inserter(neighbors[q.index]), fc);
+
+		K_neighbor_search search(tree, q, K);
+/*
+		for (auto i=search.begin(); i!=search.end(); i++) {
+		neighbors[q.index].push_back((*i).first);
 
 
-	//populate graph
 
-	std::vector<list<Arr2_hEdge>> edges(N);
+		}*/
 
-	for (auto i: wallVec) {
-		auto temp = i->twin();
-		do {
-			if (temp->data()==0)  {//is legal wall
-				edges[temp->data()].push_back(temp);
-			}
-			temp++;
-		} while (temp!=(i->twin()));
+		for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
+		    	qPoint q1 = it->first;
+		    	neighbors[q.index].push_back(q1);
+		    	neighbors[q1.index].push_back(q);
 
-		auto twin = i->twin()->twin();
-		temp = twin;
-		do {
-			if (temp->data()>=0)  {//is legal wall
-				edges[temp->data()].push_back(temp);
-			}
-			temp++;
-		} while (temp!=twin);
+	}
 	}
 
+
+	std::cout<<"done finding nodes"<<endl;
+
+
+	std::vector<double> g(N,numeric_limits<double>::max());
+	std::vector<double> f(N,numeric_limits<double>::max());
+	std::vector<int> parent(N,-1);
+	std::vector<int> Orient(N,2);
+
+		f[0] = heuristic(V[0],V[1]);
+		g[0]=0;
+
+	bool foundPath = false;
 
 	std::set<int> Open; std::set<int> Closed;
 
-	while (!Open.empty()) {
+	Open.insert(0);
 
-		//choose edge which minimized f(v);
+	 while (!Open.empty()) {
+
+		 int min_f_ind = *(Open.begin());
+		 for (auto i=Open.begin(); i!=Open.end(); i++) {
+			 if (f[*i]<f[min_f_ind]) {
+				 min_f_ind = *i;
+			 }
+		 }
+		qPoint v = V[min_f_ind];
+		if (v.index == 1) {foundPath=true; break;}
+		Closed.insert(min_f_ind);
+		Open.erase(min_f_ind);
+		for (qPoint q: neighbors[v.index]) {
 
 
+			if (Closed.find(q.index)!=Closed.end()) { //node already expanded
+				continue;
+			}
+			auto temp = cost(v,q,queryHandler);
+
+
+
+			if (temp.second==2) {continue;}
+			Open.insert(q.index);
+
+			if (g[q.index]<=(g[v.index] + temp.first)) { //this is not a better path
+				continue;
+			}
+			parent[q.index] = v.index; g[q.index]=g[v.index]+temp.first;
+			f[q.index] = g[q.index]+heuristic(q,V[1]);
+			Orient[q.index] = temp.second; //direction of rotation;
+
+
+		}
 	}
 
+	 std::cout<<"exited loop"<<endl;
 
-
+	std::vector<int> path;
 
 	//start and end vertices are only connected
 
@@ -229,8 +337,6 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 	//Open is set of indexes
 	//Closed is set of indexes
 
-
-	//TODO: currently, moves through edges of trapezoid, maybe implement something smarter
 
 /*
 	// copy vertices to vector
@@ -398,13 +504,6 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		//convert triplets to trapezoid
 		//go over all faces created in the decomposition
 		//go over the trapezoids
-int counter=0;
-	for (auto i=free_space_arrangement.edges_begin(); i!=free_space_arrangement.edges_end(); i++) {
-		counter++;
-	//	i->set_data(true);
-	}
-
-	cout<<counter<<endl;
 //
 //
 //

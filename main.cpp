@@ -85,31 +85,27 @@ qPoint newRandomQPoint(double xmin, double xmax, double ymin, double ymax) {
 	return p;
 }
 
-bool isLegalConfiguration(qPoint p,Arrangement_2 &arr,trapezoidalPl &pl) {
-
-	auto location = pl.locate(p.xy1);
+//TODO : neeeds testing for non-rectangular outer_obstacle
+bool isLegalConfigurationPerPoint(Point_2 p,Arrangement_2 &arr,trapezoidalPl &pl) {
+	auto location = pl.locate(p);
 
 	Arrangement_2::Face_const_handle face;
 
 	if(CGAL::assign(face, location)) {
-		if (face->data()==true)  {//is obstacle
-	}
 
-		return false;
-
-	}
-
-	location = pl.locate(p.xy2);
-
-	if(CGAL::assign(face, location)) {
-		if (face->data()==true)  {//is obstacle
-	}
-
-		return false;
+		if (face->data())  {//is obstacle
+			return false;
+		}
 
 	}
 
 	return true;
+
+}
+
+bool isLegalConfiguration(qPoint p,Arrangement_2 &arr,trapezoidalPl &pl) {
+	return isLegalConfigurationPerPoint(p.xy1, arr, pl) &&
+		isLegalConfigurationPerPoint(p.xy2, arr, pl);
 }
 
 double dist(qPoint q1, qPoint q2) {
@@ -417,7 +413,7 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 	//N random configurations
 	int currRandPoints=0;
 	int counter =0;
-	while (counter < TIMEOUT && currRandPoints<Nrand ) {
+ 	while (counter < TIMEOUT && currRandPoints<Nrand ) {
 		qPoint temp = newRandomQPoint(xmin,xmax,ymin,ymax);
 			if(isLegalConfiguration(temp, free_space_arrangement,pl)) {
 				temp.index = currInd;
@@ -483,6 +479,8 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 	std::set<int,Comp> K_set_curr {Comp{f}};
 
 	Open.insert(0);
+
+	cout << "V.size()" << V.size() << endl;
 
 	 while (!Open.empty()) {
 

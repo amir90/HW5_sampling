@@ -39,6 +39,11 @@ struct qPoint {
 	double vec[4];
 
 
+	void set(double x1, double y1, double x2, double y2) {
+		xy1 = Point_2(x1,y1);
+		xy2 = Point_2(x2, y2);
+	}
+
 	  bool operator==(const qPoint& p) const
 	  {
 	    return (index==p.index)  ;
@@ -60,10 +65,20 @@ double heuristic(qPoint q1, qPoint q2) {
 
 }
 
-qPoint newRandomQPoint (double xmin,double xmax,double ymin,double ymax) {
-	//TODO: implement
-	qPoint rand;
-	return rand;
+double rand_between(double high, double low) {
+	return low + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(high-low)));
+}
+
+qPoint newRandomQPoint(double xmin, double xmax, double ymin, double ymax) {
+	double x1 = rand_between(xmin,xmax);
+	double y1 = rand_between(ymin, ymax);
+
+	double x2 = rand_between(xmin,xmax);
+	double y2 = rand_between(ymin, ymax);
+
+	qPoint p;
+	p.set(x1,y1,x2,y2);
+	return p;
 }
 
 bool isLegalConfiguration(qPoint p,Arrangement_2 &arr,trapezoidalPl &pl) {
@@ -498,6 +513,22 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 
 
 	//TODO: return path
+	if (foundPath) {
+		int currInd = 1;
+		while (currInd!=0) {
+			path.push_back(currInd);
+			currInd = parent[currInd];
+		}
+		path.push_back(0);
+	}
+
+	vector<pair<Point_2, Point_2>> points_path;
+	for(auto i = path.begin(); i != path.end(); i++) {
+		qPoint q = V.at(*i);
+		Point_2 p1 = q.xy1;
+		Point_2 p2 = q.xy2;
+		points_path.push_back(pair<Point_2, Point_2>(p1, p2));
+	}
 
 	return vector<pair<Point_2, Point_2>>();
 }

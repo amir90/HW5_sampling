@@ -1,0 +1,2 @@
+ ./MotionPlanningForTwoRobots test_robot.txt test_obstacles.txt outputFile.txt
+cmake . && make

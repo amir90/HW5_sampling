@@ -1,4 +1,4 @@
-# Install script for directory: /home/amir/Documents/CS Masters/Robotics/HW5/sampling
+# Install script for directory: /home/nitai/documents/courses/robotics/workspace/HW5_sampling
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/amir/Documents/CS Masters/Robotics/HW5/sampling/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/nitai/documents/courses/robotics/workspace/HW5_sampling/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

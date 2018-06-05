@@ -56,7 +56,7 @@ struct Construct_coord_iterator {
   const double* operator()(const qPoint& p) const
   { return static_cast<const double*>(p.vec); }
   const double* operator()(const qPoint& p, int)  const
-  { return static_cast<const double*>(p.vec+3); }
+  { return static_cast<const double*>(p.vec+4); }
 };
 
 double heuristic(qPoint q1, qPoint q2) {
@@ -78,6 +78,10 @@ qPoint newRandomQPoint(double xmin, double xmax, double ymin, double ymax) {
 
 	qPoint p;
 	p.set(x1,y1,x2,y2);
+	p.vec[0] = x1;
+	p.vec[1] = y1;
+	p.vec[2] = x2;
+	p.vec[3] = y2;
 	return p;
 }
 
@@ -522,15 +526,35 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		path.push_back(0);
 	}
 
+	cout << "foundPath? " << foundPath << endl;
+	cout << "path length " << path.size() << endl;
+
 	vector<pair<Point_2, Point_2>> points_path;
+	Point_2 prev1, prev2;
 	for(auto i = path.begin(); i != path.end(); i++) {
 		qPoint q = V.at(*i);
 		Point_2 p1 = q.xy1;
 		Point_2 p2 = q.xy2;
-		points_path.push_back(pair<Point_2, Point_2>(p1, p2));
+		
+		if(i == path.begin())
+			points_path.push_back(pair<Point_2, Point_2>(p1, p2));
+		
+		else {
+
+			if(Orient[q.index] == 1) {
+				points_path.push_back(pair<Point_2, Point_2>(p1, prev2));
+				points_path.push_back(pair<Point_2, Point_2>(p1, p2));
+			} else {
+				points_path.push_back(pair<Point_2, Point_2>(prev1, p2));
+				points_path.push_back(pair<Point_2, Point_2>(p1, p2));
+			}
+		}
+
+		prev1 = p1;
+		prev2 = p2;
 	}
 
-	return vector<pair<Point_2, Point_2>>();
+	return points_path;
 }
 
 int main(int argc, char *argv[]) {

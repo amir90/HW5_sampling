@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = "/home/amir/Documents/CS Masters/Robotics/HW5/sampling"
+CMAKE_SOURCE_DIR = /home/nitai/documents/courses/robotics/workspace/HW5_sampling
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = "/home/amir/Documents/CS Masters/Robotics/HW5/sampling"
+CMAKE_BINARY_DIR = /home/nitai/documents/courses/robotics/workspace/HW5_sampling
 
 # Include any dependencies generated for this target.
 include CMakeFiles/MotionPlanningForTwoRobots.dir/depend.make
@@ -59,16 +59,16 @@ include CMakeFiles/MotionPlanningForTwoRobots.dir/flags.make
 
 CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o: CMakeFiles/MotionPlanningForTwoRobots.dir/flags.make
 CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o: main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="/home/amir/Documents/CS Masters/Robotics/HW5/sampling/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o -c "/home/amir/Documents/CS Masters/Robotics/HW5/sampling/main.cpp"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/nitai/documents/courses/robotics/workspace/HW5_sampling/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o -c /home/nitai/documents/courses/robotics/workspace/HW5_sampling/main.cpp
 
 CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "/home/amir/Documents/CS Masters/Robotics/HW5/sampling/main.cpp" > CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.i
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/nitai/documents/courses/robotics/workspace/HW5_sampling/main.cpp > CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.i
 
 CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/home/amir/Documents/CS Masters/Robotics/HW5/sampling/main.cpp" -o CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.s
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/nitai/documents/courses/robotics/workspace/HW5_sampling/main.cpp -o CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.s
 
 CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o.requires:
 
@@ -91,17 +91,17 @@ MotionPlanningForTwoRobots_EXTERNAL_OBJECTS =
 MotionPlanningForTwoRobots: CMakeFiles/MotionPlanningForTwoRobots.dir/main.cpp.o
 MotionPlanningForTwoRobots: CMakeFiles/MotionPlanningForTwoRobots.dir/build.make
 MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libmpfr.so
-MotionPlanningForTwoRobots: /usr/local/lib/libgmp.so
-MotionPlanningForTwoRobots: /usr/local/lib/libCGAL.so.13.0.0
-MotionPlanningForTwoRobots: /usr/local/lib/libboost_thread.so
-MotionPlanningForTwoRobots: /usr/local/lib/libboost_system.so
+MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libgmp.so
+MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libCGAL.so.11.0.1
+MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libboost_thread.so
+MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libboost_system.so
 MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libpthread.so
-MotionPlanningForTwoRobots: /usr/local/lib/libCGAL.so.13.0.0
-MotionPlanningForTwoRobots: /usr/local/lib/libboost_thread.so
-MotionPlanningForTwoRobots: /usr/local/lib/libboost_system.so
+MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libCGAL.so.11.0.1
+MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libboost_thread.so
+MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libboost_system.so
 MotionPlanningForTwoRobots: /usr/lib/x86_64-linux-gnu/libpthread.so
 MotionPlanningForTwoRobots: CMakeFiles/MotionPlanningForTwoRobots.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="/home/amir/Documents/CS Masters/Robotics/HW5/sampling/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable MotionPlanningForTwoRobots"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/nitai/documents/courses/robotics/workspace/HW5_sampling/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable MotionPlanningForTwoRobots"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/MotionPlanningForTwoRobots.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -118,6 +118,6 @@ CMakeFiles/MotionPlanningForTwoRobots.dir/clean:
 .PHONY : CMakeFiles/MotionPlanningForTwoRobots.dir/clean
 
 CMakeFiles/MotionPlanningForTwoRobots.dir/depend:
-	cd "/home/amir/Documents/CS Masters/Robotics/HW5/sampling" && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" "/home/amir/Documents/CS Masters/Robotics/HW5/sampling" "/home/amir/Documents/CS Masters/Robotics/HW5/sampling" "/home/amir/Documents/CS Masters/Robotics/HW5/sampling" "/home/amir/Documents/CS Masters/Robotics/HW5/sampling" "/home/amir/Documents/CS Masters/Robotics/HW5/sampling/CMakeFiles/MotionPlanningForTwoRobots.dir/DependInfo.cmake" --color=$(COLOR)
+	cd /home/nitai/documents/courses/robotics/workspace/HW5_sampling && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/nitai/documents/courses/robotics/workspace/HW5_sampling /home/nitai/documents/courses/robotics/workspace/HW5_sampling /home/nitai/documents/courses/robotics/workspace/HW5_sampling /home/nitai/documents/courses/robotics/workspace/HW5_sampling /home/nitai/documents/courses/robotics/workspace/HW5_sampling/CMakeFiles/MotionPlanningForTwoRobots.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/MotionPlanningForTwoRobots.dir/depend
 

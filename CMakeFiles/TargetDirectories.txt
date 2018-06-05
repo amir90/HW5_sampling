@@ -1,3 +1,0 @@
-/home/nitai/documents/courses/robotics/workspace/HW5_sampling/CMakeFiles/rebuild_cache.dir
-/home/nitai/documents/courses/robotics/workspace/HW5_sampling/CMakeFiles/edit_cache.dir
-/home/nitai/documents/courses/robotics/workspace/HW5_sampling/CMakeFiles/MotionPlanningForTwoRobots.dir

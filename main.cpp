@@ -32,6 +32,25 @@ std::vector<double> f;
 };
 
 
+pair<double, double> to_double(Point_2 p) {
+  return pair<double, double>(p.x().to_double(), p.y().to_double());
+}
+
+string point2string(Point_2 p) {
+	pair<double, double> pDouble = to_double(p);
+	stringstream sstm;
+	sstm << "(" << pDouble.first << " , " << pDouble.second << ")";
+	return sstm.str();
+}
+
+void print_point(Point_2  p) {
+  cout <<  point2string(p);
+}
+
+bool has(set<int> s, int x) {
+	return s.find(x) != s.end();
+}
+
 struct qPoint {
 	Point_2 xy1;
 	Point_2 xy2;
@@ -85,8 +104,21 @@ qPoint newRandomQPoint(double xmin, double xmax, double ymin, double ymax) {
 	return p;
 }
 
+bool withinEnv(double x1, double x2, double env) {
+	return x2 < x1 + env && x2 > x1 - env;
+}
+bool areColliding(Point_2 p1, Point_2 p2) {
+	double x1 = p1.x().to_double(), y1 = p1.y().to_double();
+	double x2 = p2.x().to_double(), y2 = p2.y().to_double();
+	return withinEnv(x1,x2,1) && withinEnv(y1,y2,1));
+}
+
+bool isCollisionConfiguration(qPoint q) {
+	return areColliding(q.xy1, q.xy2);
+}
+
 //TODO : neeeds testing for non-rectangular outer_obstacle
-bool isLegalConfigurationPerPoint(Point_2 p,Arrangement_2 &arr,trapezoidalPl &pl) {
+bool isLegalPoint(Point_2 p,Arrangement_2 &arr,trapezoidalPl &pl) {
 	auto location = pl.locate(p);
 
 	Arrangement_2::Face_const_handle face;
@@ -104,8 +136,8 @@ bool isLegalConfigurationPerPoint(Point_2 p,Arrangement_2 &arr,trapezoidalPl &pl
 }
 
 bool isLegalConfiguration(qPoint p,Arrangement_2 &arr,trapezoidalPl &pl) {
-	return isLegalConfigurationPerPoint(p.xy1, arr, pl) &&
-		isLegalConfigurationPerPoint(p.xy2, arr, pl);
+	return isLegalPoint(p.xy1, arr, pl) &&
+		isLegalPoint(p.xy2, arr, pl) && !isCollisionConfiguration(p);
 }
 
 double dist(qPoint q1, qPoint q2) {
@@ -169,6 +201,9 @@ std::pair<double,int> cost (qPoint q1, qPoint q2, Arrangement_2 arr) {
 	//if movement is legal, get cost of movement.
 	//Otherwise - return infinite cost
 	int j = localPlanner(q1,q2,arr);
+	cout << "calc local planner from : [ (" << point2string(q1.xy1) << ") , (" << point2string(q1.xy2) << ")]" << endl;
+	cout << "calc local planner from : [ (" << point2string(q2.xy1) << ") , (" << point2string(q2.xy2) << ")]" << endl;
+	cout << "result  : " << j << endl;
 	std::pair<double,int> temp;
 	if (j!=0) {
 		temp.first = std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
@@ -315,25 +350,6 @@ vector<Polygon_2> loadPolygons(ifstream &is) {
     return ret;
 }
 
-pair<double, double> to_double(Point_2 p) {
-  return pair<double, double>(p.x().to_double(), p.y().to_double());
-}
-
-string point2string(Point_2 p) {
-	pair<double, double> pDouble = to_double(p);
-	stringstream sstm;
-	sstm << "(" << pDouble.first << " , " << pDouble.second << ")";
-	return sstm.str();
-}
-
-void print_point(Point_2  p) {
-  cout <<  point2string(p);
-}
-
-bool has(set<int> s, int x) {
-	return s.find(x) != s.end();
-}
-
 typedef CGAL::Dimension_tag<4> D;
 typedef CGAL::Search_traits<double, qPoint, const double*, Construct_coord_iterator, D> Traits;
 typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
@@ -411,6 +427,8 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 
 
 	//N random configurations
+	// TODO : for faster caculation - if one point is legal and the 
+	//        other doesn't recalculate one instead of both
 	int currRandPoints=0;
 	int counter =0;
  	while (counter < TIMEOUT && currRandPoints<Nrand ) {
@@ -458,7 +476,7 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		    	neighbors[q.index].push_back(q1);
 		    	neighbors[q1.index].push_back(q);
 
-	}
+		}
 	}
 
 
@@ -491,10 +509,10 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		Open.erase(min_f_ind);
 		for (qPoint q: neighbors[v.index]) {
 
-
 			if (Closed.find(q.index)!=Closed.end()) { //node already expanded
 				continue;
 			}
+
 			auto temp = cost(v,q,free_space_arrangement);
 
 			if (temp.second==0) {continue;}

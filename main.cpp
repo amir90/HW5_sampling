@@ -110,7 +110,7 @@ bool withinEnv(double x1, double x2, double env) {
 bool areColliding(Point_2 p1, Point_2 p2) {
 	double x1 = p1.x().to_double(), y1 = p1.y().to_double();
 	double x2 = p2.x().to_double(), y2 = p2.y().to_double();
-	return withinEnv(x1,x2,1) && withinEnv(y1,y2,1));
+	return withinEnv(x1,x2,1) && withinEnv(y1,y2,1);
 }
 
 bool isCollisionConfiguration(qPoint q) {

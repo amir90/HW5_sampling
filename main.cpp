@@ -8,27 +8,27 @@
 using namespace std;
 
 
-#define STEPS 128
-#define Nbbox 2
-#define Nrand 3000
+
+#define Nrand 200000
 #define K 50
-#define TIMEOUT 100
+#define TIMEOUT 1000
 
 const double INF = numeric_limits<double>::max();
 
 
 struct Comp{
 
-Comp(std::vector<double> &f) {this->f=f;}
+Comp(std::vector<double> *f) {this->f=f;}
 bool operator()( int a ,int b) {
-	  if (f[a]>=f[b]) {
+	  if ((f->at(a)>f->at(b)) || (a==b)) {
+//		  cout<<a<<" "<<f->at(a)<<" "<<b<<" "<<f->at(b)<<endl;
 		  return false;
 	  }
 	   else {
 		  return true;
 	  }
 }
-std::vector<double> f;
+std::vector<double> *f;
 };
 
 
@@ -478,18 +478,22 @@ int faceCounter=0;
 	Tree tree;
 
 	tree.insert(V.begin(),V.end());
+	//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.xmin()))*
+	double radius = 25*pow((log2(N)/N),0.25);//*(bbox.xmax()-bbox.xmin());//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.ymin()));
 
-	double radius = 3/2*pow((log2(N)/N),(1/3));//*(bbox.xmax()-bbox.xmin());//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.ymin()));
+	cout<<"radius: " << radius<<endl;
 
 	std::vector<std::list<qPoint>> neighbors(N);
 
 	for (qPoint q: V ) { //sorted by index
 
-//		Fuzzy_Circle fc(q,radius);
+		Fuzzy_Circle fc(q,radius);
 
-//		tree.search(std::back_inserter(neighbors[q.index]), fc);
+		tree.search(std::back_inserter(neighbors[q.index]), fc);
 
-		K_neighbor_search search(tree, q, K);
+	//	cout<<"neigbors: "<<neighbors[q.index].size()<<endl;
+
+//		K_neighbor_search search(tree, q, K);
 /*
 		for (auto i=search.begin(); i!=search.end(); i++) {
 		neighbors[q.index].push_back((*i).first);
@@ -498,10 +502,13 @@ int faceCounter=0;
 
 		}*/
 
-		for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
-		    	qPoint q1 = it->first;
-		    	neighbors[q.index].push_back(q1);
+//		for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
+		for (auto q1: neighbors[q.index]) {
+		   // 	qPoint q1 = it->first;
+		    	//neighbors[q.index].push_back(q1);
+			if (q1.index != q.index) {
 		    	neighbors[q1.index].push_back(q);
+			}
 
 		}
 	}
@@ -535,18 +542,41 @@ int faceCounter=0;
 */
 
 	std::vector<double> g(N,numeric_limits<double>::max());
-	std::vector<double> f(N,numeric_limits<double>::max());
+	std::vector<double> *f = new vector<double>(N,numeric_limits<double>::max());
 	std::vector<int> parent(N,-1);
 	std::vector<int> Orient(N,2);
 
-		f[0] = heuristic(V[0],V[1]);
+		f->at(0) = heuristic(V[0],V[1]);
 		g[0]=0;
 
 	bool foundPath = false;
 
-	std::set<int> Open; std::set<int> Closed;
-	std::set<int,Comp> K_set_curr {Comp{f}};
+	//std::set<int> Open;
+	std::set<int> Closed;
+	std::set<int,Comp> Open {Comp{f}};
 
+
+	//test Open
+/*
+	f->at(0)=1; f->at(1) = 5; f->at(2)=2; f->at(5)=1;
+
+	Open.insert(0); Open.insert(2); Open.insert(1); Open.insert(5);
+
+	auto k = Open.erase(1);
+
+	f->at(1)=0;
+
+	 Open.insert(1);
+
+
+
+	cout<<"erased: "<<k<<endl;
+
+	for (auto i=Open.begin(); i!=Open.end(); i++) {
+		cout<<*i<<endl;
+		cout<<"testing set"<<endl;
+	}
+*/
 	Open.insert(0);
 
 	cout << "V.size()" << V.size() << endl;
@@ -573,13 +603,17 @@ int faceCounter=0;
 				continue;
 			}
 			parent[q.index] = v.index; g[q.index]=g[v.index]+temp.first;
-			f[q.index] = g[q.index]+heuristic(q,V[1]);
+			Open.erase(q.index);
+			f->at(q.index) = g[q.index]+heuristic(q,V[1]);
+		    Open.insert(q.index);
 			Orient[q.index] = temp.second; //which robot goes first
 
 
 		}
 	}
 
+
+	delete(f);
 	std::vector<int> path;
 
 
@@ -679,3 +713,4 @@ int main(int argc, char *argv[]) {
     outputFile.close();
     return 0;
 }
+

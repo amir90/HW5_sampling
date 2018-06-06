@@ -10,7 +10,7 @@ using namespace std;
 
 #define STEPS 128
 #define Nbbox 2
-#define Nrand 300
+#define Nrand 3000
 #define K 50
 #define TIMEOUT 100
 
@@ -121,7 +121,7 @@ bool isCollisionConfiguration(qPoint q) {
 bool isLegalPoint(Point_2 p,Arrangement_2 &arr,trapezoidalPl &pl) {
 	auto location = pl.locate(p);
 
-	Arrangement_2::Face_const_handle face;
+	Arrangement_2::Face_handle face;
 
 	if(CGAL::assign(face, location)) {
 
@@ -157,7 +157,7 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 	Segment_2 robot1 = Segment_2(q1.xy1,q2.xy1);
 	std::vector<CGAL::Object> zone_elems;
 	CGAL::zone(arr,robot1,std::back_inserter(zone_elems));
-	Arrangement_2::Face_const_handle face;
+	Arrangement_2::Face_handle face;
 	  for ( int i = 0; i < (int)zone_elems.size(); ++i )
 	    {
 	      if (assign(face, zone_elems[i]) ) {
@@ -515,6 +515,25 @@ int faceCounter=0;
 	}
 */
 
+	//test path
+/*
+	Segment_2 seg(Point_2(3,0), Point_2(-5.36459,4.44451));
+
+	std::vector<CGAL::Object> zone_elems;
+	CGAL::zone(free_space_arrangement,seg,std::back_inserter(zone_elems));
+	Arrangement_2::Face_handle face;
+	  for ( int i = 0; i < (int)zone_elems.size(); ++i )
+	    {
+		  cout<<"in loop!"<<endl;
+	      if (assign(face, zone_elems[i]) ) {
+	    	  cout<<face->data()<<endl;
+	    	  if (face->data()==false) { //if obstacle
+	    		  cout<<"illegal move!"<<endl;
+	    	  }
+	      }
+	    }
+*/
+
 	std::vector<double> g(N,numeric_limits<double>::max());
 	std::vector<double> f(N,numeric_limits<double>::max());
 	std::vector<int> parent(N,-1);
@@ -586,19 +605,30 @@ int faceCounter=0;
 		Point_2 p1 = q.xy1;
 		Point_2 p2 = q.xy2;
 		
-		if(i == path.begin())
+		if(i == path.begin()) {
 			points_path.push_back(pair<Point_2, Point_2>(p1, p2));
-		
-		else {
+			cout<<p1.x().to_double()<<","<<p1.y().to_double()<<"  "<<p2.x().to_double()<<","<<p2.y().to_double()<<endl;
+			continue;
+		}
 
 			if(Orient[q.index] == 1) {
 				points_path.push_back(pair<Point_2, Point_2>(p1, prev2));
 				points_path.push_back(pair<Point_2, Point_2>(p1, p2));
+
+				cout<<"robot 1 goes first"<<endl;
+				cout<<p1.x().to_double()<<","<<p1.y().to_double()<<"  "<<prev2.x().to_double()<<","<<prev2.y().to_double()<<endl;
+				cout<<p1.x().to_double()<<","<<p1.y().to_double()<<"  "<<p2.x().to_double()<<","<<p2.y().to_double()<<endl;
+
 			} else {
+				cout<<"robot 2 goes first"<<endl;
 				points_path.push_back(pair<Point_2, Point_2>(prev1, p2));
 				points_path.push_back(pair<Point_2, Point_2>(p1, p2));
+
+				cout<<prev1.x().to_double()<<","<<prev1.y().to_double()<<"  "<<p2.x().to_double()<<","<<p2.y().to_double()<<endl;
+				cout<<p1.x().to_double()<<","<<p1.y().to_double()<<"  "<<p2.x().to_double()<<","<<p2.y().to_double()<<endl;
+
 			}
-		}
+
 
 		prev1 = p1;
 		prev2 = p2;

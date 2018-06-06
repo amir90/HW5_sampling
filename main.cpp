@@ -147,7 +147,7 @@ double dist(qPoint q1, qPoint q2) {
 }
 
 //return 1 if robot 1 goes first
-//return 2 if robot 2 goes first
+//return -1 if robot 2 goes first
 
 int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 
@@ -161,7 +161,7 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 	  for ( int i = 0; i < (int)zone_elems.size(); ++i )
 	    {
 	      if (assign(face, zone_elems[i]) ) {
-	    	  if (face->data()==false) { //if obstacle
+	    	  if (face->data()==true) { //if obstacle
 	    		  return 0;
 	    	  }
 	      }
@@ -174,7 +174,7 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 		  for ( int i = 0; i < (int)zone_elems.size(); ++i )
 		    {
 		      if (assign(face, zone_elems[i]) ) {
-		    	  if (face->data()==false) { //if obstacle
+		    	  if (face->data()==true) { //if obstacle
 		    		  return 0;
 		    	  }
 		      }
@@ -184,16 +184,14 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 	//for robot 1 path segment, check if distance to endpoints of robot 2 path segment are at least 10 (can be done in O(1)- simple algebra)
 		  // if yes, return 1
 
-		if (std::sqrt(CGAL::squared_distance(robot1,robot2.source()).to_double())>=1 &&std::sqrt(CGAL::squared_distance(robot1,robot2.target()).to_double())>=10 ) {
+		if (CGAL::squared_distance(robot1,robot2.source()).to_double()>=1 && CGAL::squared_distance(robot1,robot2.target()).to_double()>=1 ) {
 			return 1;
 		}
-		if (std::sqrt(CGAL::squared_distance(robot2,robot1.source()).to_double())>=1 &&std::sqrt(CGAL::squared_distance(robot2,robot1.target()).to_double())>=10 ) {
+		if (CGAL::squared_distance(robot2,robot1.source()).to_double()>=1 && CGAL::squared_distance(robot2,robot1.target()).to_double()>=1 ) {
 			return -1;
 		}
 
 		return 0;
-
-return true;
 }
 
 std::pair<double,int> cost (qPoint q1, qPoint q2, Arrangement_2 arr) {
@@ -201,9 +199,9 @@ std::pair<double,int> cost (qPoint q1, qPoint q2, Arrangement_2 arr) {
 	//if movement is legal, get cost of movement.
 	//Otherwise - return infinite cost
 	int j = localPlanner(q1,q2,arr);
-	cout << "calc local planner from : [ (" << point2string(q1.xy1) << ") , (" << point2string(q1.xy2) << ")]" << endl;
-	cout << "calc local planner from : [ (" << point2string(q2.xy1) << ") , (" << point2string(q2.xy2) << ")]" << endl;
-	cout << "result  : " << j << endl;
+	//cout << "calc local planner from : [ (" << point2string(q1.xy1) << ") , (" << point2string(q1.xy2) << ")]" << endl;
+	//cout << "calc local planner from : [ (" << point2string(q2.xy1) << ") , (" << point2string(q2.xy2) << ")]" << endl;
+	//cout << "result  : " << j << endl;
 	std::pair<double,int> temp;
 	if (j!=0) {
 		temp.first = std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
@@ -376,14 +374,7 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		CGAL::insert(free_space_arrangement,obstacle.edges_begin(),obstacle.edges_end());
 	}
 
-	//identify obstacle faces
-	for (auto i=free_space_arrangement.faces_begin(); i!=free_space_arrangement.faces_end(); i++) {
-		if (!i->is_unbounded()) {
-		i->set_data(true);
-		} else {
-		i->set_data(false);
-		}
-	}
+
 
 	// create an arrangement from the polygon set
 	//add outer polygon
@@ -391,6 +382,38 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		Segment_2 addSeg(i->point(0),i->point(1));
 		CGAL::insert(free_space_arrangement,addSeg);
 	}
+
+	//identify obstacle faces
+	// data = true -> face is an obstacle
+	// data = false -> face is not an obstacle
+
+	for (auto i=free_space_arrangement.faces_begin(); i!=free_space_arrangement.faces_end(); i++) {
+		if (i->is_unbounded() || i->number_of_inner_ccbs()>0) {
+		i->set_data(false);
+		} else {
+		i->set_data(true);
+		}
+	}
+
+	/*
+
+	//test faces: test passed
+
+int testCounter=0;
+int faceCounter=0;
+	for (auto i=free_space_arrangement.faces_begin(); i!=free_space_arrangement.faces_end(); i++) {
+
+		faceCounter++;
+		if (i->data()==true) {
+			testCounter++;
+		}
+
+	}
+
+	cout<<"there are: "<<testCounter<<" obstacle faces"<<endl;
+	cout<<"out of: "<<faceCounter<<endl;
+
+*/
 
 	trapezoidalPl   pl(free_space_arrangement);
 
@@ -418,7 +441,7 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 	qstart.xy2 = start2;
 	qstart.index = 0;
 	qend.xy1 = end1;
-	qend.xy1 = end2;
+	qend.xy2 = end2;
 	qend.index = 1;
 	V.push_back(qstart);
 	V.push_back(qend);
@@ -442,6 +465,10 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 			}
 		counter++;
 	}
+
+
+ 	cout<<isLegalConfiguration(V[0],free_space_arrangement,pl)<<endl;
+ 	cout<<isLegalConfiguration(V[1],free_space_arrangement,pl)<<endl;
 
 
 	int N=V.size();
@@ -479,9 +506,14 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 		}
 	}
 
-
+// check population of neighbors: test passed
+	/*
 	std::cout<<"done finding nodes"<<endl;
 
+	for (auto i: neighbors) {
+		cout<<i.size()<<endl;
+	}
+*/
 
 	std::vector<double> g(N,numeric_limits<double>::max());
 	std::vector<double> f(N,numeric_limits<double>::max());
@@ -533,7 +565,9 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 
 
 	//TODO: return path
+
 	if (foundPath) {
+		//reverse path
 		int currInd = 1;
 		while (currInd!=0) {
 			path.push_back(currInd);

@@ -200,11 +200,36 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 		return 0;
 }
 
-double dist(qPoint q1, qPoint q2) {
-	//TODO: local planner is now calcualted as part of the knn tree, if the result is not 0 (no admissible movement) then saving the result to a matrix should speed up performance
-	// by not requiring re calculation when computing local planner in the path finding.
+string pointKey(Point_2 p) {
+	stringstream sstm;
+	sstm << p.x().to_double() << "," << p.y().to_double();
+	return sstm.str();
+}
+string getKey(qPoint q1, qPoint q2) {
+	Point_2 p1 = q1.xy1, p2 = q1.xy2, p3 = q2.xy1, p4 = q2.xy2;
+	stringstream sstm;
+	sstm << p1 << "," <<
+		p2 << "," <<
+		p3 << "," <<
+		p4;
 
-	if (localPlanner(q1,q2,free_space_arrangement)!=0) {
+	return sstm.str();
+}
+
+map<string, int> localPlannerMap;
+
+double dist(qPoint q1, qPoint q2) {
+	string k = getKey(q1,q2);
+	map<string, int>::iterator it = localPlannerMap.find(k);
+	int lp;
+	if(it != localPlannerMap.end())
+		lp = it->second;
+	else {
+		lp = localPlanner(q1,q2,free_space_arrangement);
+		localPlannerMap[k] = lp;
+	}
+
+	if (lp!=0) {
 	return std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
 	} else {
 		return INF;
@@ -489,18 +514,8 @@ int faceCounter=0;
 	V.push_back(qend);
 
 	int currInd = 2;
-
-
-			// if(isLegalConfiguration(temp, free_space_arrangement,pl)) {
-			// 	temp.index = currInd;
-			// 	V.push_back(temp);
-			// 	currInd++;
-			// 	currRandPoints++;
-			// 	counter=0;
-			// }
+			
 	//N random configurations
-	// TODO : for faster caculation - if one point is legal and the 
-	//        other doesn't recalculate one instead of both
 	int currRandPoints=0;
 	int counter =0;
 	qPoint q;
@@ -560,7 +575,7 @@ int faceCounter=0;
 		neighbors[q.index].push_back((*i).first);
 		}
 */
-		cout<<"K: "<<K<<endl;
+		// cout<<"K: "<<K<<endl;
 
 
 		for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
@@ -573,7 +588,7 @@ int faceCounter=0;
 
 		}
 
-		cout<<"neigbors: "<<neighbors[q.index].size()<<endl;
+		// cout<<"neigbors: "<<neighbors[q.index].size()<<endl;
 	}
 
 // check population of neighbors: test passed
@@ -632,7 +647,7 @@ int faceCounter=0;
 */
 	Open.insert(0);
 
-	cout << "V.size()" << V.size() << endl;
+	// cout << "V.size()" << V.size() << endl;
 
 	 while (!Open.empty()) {
 

@@ -9,7 +9,7 @@ using namespace std;
 
 
 
-#define Nrand 2000
+#define Nrand 3500
 #define K 20
 #define TIMEOUT 1000
 
@@ -60,22 +60,10 @@ struct qPoint {
 	int index;
 	double vec[4];
 
-	void set(Point_2 set_xy1, Point_2 set_xy2) {
-		xy1 = set_xy1;
-		xy2 = set_xy2;
-		vec[0] = xy1.x().to_double();
-		vec[1] = xy1.y().to_double();
-		vec[2] = xy2.x().to_double();
-		vec[3] = xy2.y().to_double();
-	}
 
 	void set(double x1, double y1, double x2, double y2) {
 		xy1 = Point_2(x1,y1);
 		xy2 = Point_2(x2, y2);
-		vec[0] = x1;
-		vec[1] = y1;
-		vec[2] = x2;
-		vec[3] = y2; 
 	}
 
 	  bool operator==(const qPoint& p) const
@@ -103,19 +91,19 @@ double rand_between(double high, double low) {
 	return low + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(high-low)));
 }
 
-Point_2 newRandomPoint(double xmin, double xmax, double ymin, double ymax) {
-	double x = rand_between(xmin,xmax);
-	double y = rand_between(ymin, ymax);
-
-	return Point_2(x,y);
-}
-
 qPoint newRandomQPoint(double xmin, double xmax, double ymin, double ymax) {
-	auto xy1 = newRandomPoint(xmin,xmax,ymin,ymax);
-	auto xy2 = newRandomPoint(xmin,xmax,ymin,ymax);
-	
+	double x1 = rand_between(xmin,xmax);
+	double y1 = rand_between(ymin, ymax);
+
+	double x2 = rand_between(xmin,xmax);
+	double y2 = rand_between(ymin, ymax);
+
 	qPoint p;
-	p.set(xy1, xy2);
+	p.set(x1,y1,x2,y2);
+	p.vec[0] = x1;
+	p.vec[1] = y1;
+	p.vec[2] = x2;
+	p.vec[3] = y2;
 	return p;
 }
 
@@ -155,6 +143,22 @@ bool isLegalConfiguration(qPoint p,Arrangement_2 &arr,trapezoidalPl &pl) {
 }
 
 
+bool intersect (Rectangle rect, Segment_2 seg) {
+
+	auto seg1 = Segment_2(rect.vertex(0),rect.vertex(1));
+	auto seg2 = Segment_2(rect.vertex(1),rect.vertex(2));
+	auto seg3 = Segment_2(rect.vertex(2),rect.vertex(3));
+	auto seg4 = Segment_2(rect.vertex(3),rect.vertex(0));
+
+	return (CGAL::do_intersect(seg,seg1) || CGAL::do_intersect(seg,seg2) || CGAL::do_intersect(seg,seg3) || CGAL::do_intersect(seg,seg4));
+
+}
+
+
+//1 - robot 1 goes first
+//-1 - robot 2 goes first
+//0 - no path
+
 int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 
 
@@ -186,50 +190,31 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 		      }
 		    }
 
+		//create squares
+		  Rectangle robot1StartRect(q1.xy1+Vector_2(1,1),q1.xy1+Vector_2(-1,-1) );
+		  Rectangle robot2StartRect (q1.xy2+Vector_2(1,1),q1.xy2+Vector_2(-1,-1) );
+		  Rectangle robot1EndRect (q2.xy2+Vector_2(1,1),q2.xy2+Vector_2(-1,-1) );
+		  Rectangle robot2EndRect (q2.xy2+Vector_2(1,1),q2.xy2+Vector_2(-1,-1) );
 
-	//for robot 1 path segment, check if distance to endpoints of robot 2 path segment are at least 10 (can be done in O(1)- simple algebra)
-		  // if yes, return 1
 
-		if (CGAL::squared_distance(robot1,robot2.source()).to_double()>=1 && CGAL::squared_distance(robot1,robot2.target()).to_double()>=1 ) {
-			return 1;
-		}
-		if (CGAL::squared_distance(robot2,robot1.source()).to_double()>=1 && CGAL::squared_distance(robot2,robot1.target()).to_double()>=1 ) {
-			return -1;
-		}
+		  //check if robot 1 can go first
+		  if (!(intersect(robot2StartRect,robot1)) && !(intersect(robot1EndRect,robot2))) {
+			  return 1;
+		  }
+
+		  //check if robot 2 can go first
+		  if (!(intersect(robot1StartRect,robot2)) && !(intersect(robot2EndRect,robot1))) {
+			  return -1;
+		  }
 
 		return 0;
 }
 
-string pointKey(Point_2 p) {
-	stringstream sstm;
-	sstm << p.x().to_double() << "," << p.y().to_double();
-	return sstm.str();
-}
-string getKey(qPoint q1, qPoint q2) {
-	Point_2 p1 = q1.xy1, p2 = q1.xy2, p3 = q2.xy1, p4 = q2.xy2;
-	stringstream sstm;
-	sstm << p1 << "," <<
-		p2 << "," <<
-		p3 << "," <<
-		p4;
-
-	return sstm.str();
-}
-
-map<string, int> localPlannerMap;
-
 double dist(qPoint q1, qPoint q2) {
-	string k = getKey(q1,q2);
-	map<string, int>::iterator it = localPlannerMap.find(k);
-	int lp;
-	if(it != localPlannerMap.end())
-		lp = it->second;
-	else {
-		lp = localPlanner(q1,q2,free_space_arrangement);
-		localPlannerMap[k] = lp;
-	}
+	//TODO: local planner is now calcualted as part of the knn tree, if the result is not 0 (no admissible movement) then saving the result to a matrix should speed up performance
+	// by not requiring re calculation when computing local planner in the path finding.
 
-	if (lp!=0) {
+	if (localPlanner(q1,q2,free_space_arrangement)!=0) {
 	return std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
 	} else {
 		return INF;
@@ -406,8 +391,6 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
          const Polygon_2 &outer_obstacle, vector<Polygon_2> &obstacles) {
 
 
-	cout<<"there"<<endl;
-
 	int obstacles_size = obstacles.size();
 
 	// create graph vertices set
@@ -514,39 +497,49 @@ int faceCounter=0;
 	V.push_back(qend);
 
 	int currInd = 2;
-			
+
+	int counter1=0;
+	for (auto i=free_space_arrangement.vertices_begin(); i!=free_space_arrangement.vertices_end(); i++) {
+		qPoint temp1;
+		temp1.xy1 = i->point();
+		temp1.vec[0] = temp1.xy1.x().to_double();
+		temp1.vec[1] = temp1.xy1.y().to_double();
+
+		for (auto j=free_space_arrangement.vertices_begin(); j!=free_space_arrangement.vertices_end(); j++) {
+
+			temp1.xy2 = j->point();
+			temp1.vec[2] = temp1.xy2.x().to_double();
+			temp1.vec[3] = temp1.xy2.y().to_double();
+			if(isLegalConfiguration(temp1, free_space_arrangement,pl)) {
+			temp1.index = currInd;
+			V.push_back(temp1);
+			currInd++;
+			counter1++;
+			}
+
+		}
+	}
+
+
+
+
+
 	//N random configurations
+	// TODO : for faster caculation - if one point is legal and the 
+	//        other doesn't recalculate one instead of both
 	int currRandPoints=0;
 	int counter =0;
-	qPoint q;
- 	while (counter < TIMEOUT && currRandPoints<Nrand ) {
-		if(counter == 1) {
-			q = newRandomQPoint(xmin,xmax,ymin,ymax);
-		}
-
-		Point_2 xy1 = q.xy1, xy2 = q.xy2;
-		if(isLegalPoint(xy1, free_space_arrangement, pl)) {
-			if(isLegalPoint(xy2, free_space_arrangement, pl)) {
-				q.index = currInd;
-				V.push_back(q);
+ 	while (counter < TIMEOUT && currRandPoints<(Nrand-counter1) ) {
+		qPoint temp = newRandomQPoint(xmin,xmax,ymin,ymax);
+			if(isLegalConfiguration(temp, free_space_arrangement,pl)) {
+				temp.index = currInd;
+				V.push_back(temp);
 				currInd++;
 				currRandPoints++;
 				counter=0;
 			}
-
-			else {
-				q.xy2 = newRandomPoint(xmin,xmax,ymin,ymax);
-			}
-		} else {
-			q.xy1 = newRandomPoint(xmin,xmax,ymin,ymax);
-		}
-
 		counter++;
 	}
-
-
- 	cout<<isLegalConfiguration(V[0],free_space_arrangement,pl)<<endl;
- 	cout<<isLegalConfiguration(V[1],free_space_arrangement,pl)<<endl;
 
 
 	int N=V.size();
@@ -558,8 +551,6 @@ int faceCounter=0;
 	tree.insert(V.begin(),V.end());
 	//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.xmin()))*
 	double radius = 20*pow((log2(N)/N),0.25);//*(bbox.xmax()-bbox.xmin());//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.ymin()));
-
-	cout<<"radius: " << radius<<endl;
 
 	std::vector<std::list<qPoint>> neighbors(N);
 
@@ -575,7 +566,7 @@ int faceCounter=0;
 		neighbors[q.index].push_back((*i).first);
 		}
 */
-		// cout<<"K: "<<K<<endl;
+	//	cout<<"K: "<<K<<endl;
 
 
 		for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
@@ -588,7 +579,7 @@ int faceCounter=0;
 
 		}
 
-		// cout<<"neigbors: "<<neighbors[q.index].size()<<endl;
+	//	cout<<"neigbors: "<<neighbors[q.index].size()<<endl;
 	}
 
 // check population of neighbors: test passed
@@ -618,19 +609,21 @@ int faceCounter=0;
 */
 
 	std::vector<double> g(N,numeric_limits<double>::max());
-	std::vector<double> *f = new vector<double>(N,numeric_limits<double>::max());
+//	std::vector<double> *f = new vector<double>(N,numeric_limits<double>::max());
+	std::vector<double> f(N,numeric_limits<double>::max());
 	std::vector<int> parent(N,-1);
 	std::vector<int> Orient(N,2);
 
-		f->at(0) = heuristic(V[0],V[1]);
+		//f->at(0) = heuristic(V[0],V[1]);
+		f[0] = heuristic(V[0],V[1]);
 		g[0]=0;
 
 	bool foundPath = false;
 
 	//std::set<int> Open;
 	std::set<int> Closed;
-	std::set<int,Comp> Open {Comp{f}};
-
+	//std::set<int,Comp> Open {Comp{f}};
+	std::set<int> Open;
 
 	//test Open
 /*
@@ -647,11 +640,17 @@ int faceCounter=0;
 */
 	Open.insert(0);
 
-	// cout << "V.size()" << V.size() << endl;
+	cout << "V.size()" << V.size() << endl;
 
 	 while (!Open.empty()) {
-
 		 int min_f_ind = *(Open.begin());
+
+		 //testing naive implmementation
+		 for (auto i=Open.begin(); i!=Open.end(); i++) {
+			 if (f[*i]<f[min_f_ind]) {
+				 min_f_ind = *i;
+			 }
+		 }
 		qPoint v = V[min_f_ind];
 		if (v.index == 1) {foundPath=true; break;}
 		Closed.insert(min_f_ind);
@@ -671,9 +670,10 @@ int faceCounter=0;
 				continue;
 			}
 			parent[q.index] = v.index; g[q.index]=g[v.index]+temp.first;
-			Open.erase(q.index);
-			f->at(q.index) = g[q.index]+heuristic(q,V[1]);
-		    Open.insert(q.index);
+			//Open.erase(q.index);
+			//f->at(q.index) = g[q.index]+heuristic(q,V[1]);
+		   //Open.insert(q.index);
+			f[q.index] = g[q.index]+heuristic(q,V[1]);
 			Orient[q.index] = temp.second; //which robot goes first
 
 
@@ -681,7 +681,7 @@ int faceCounter=0;
 	}
 
 
-	delete(f);
+	//delete(f);
 	std::vector<int> path;
 
 

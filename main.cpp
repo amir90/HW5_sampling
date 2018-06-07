@@ -9,11 +9,14 @@ using namespace std;
 
 
 
-#define Nrand 200000
-#define K 50
+#define Nrand 2000
+#define K 20
 #define TIMEOUT 1000
 
 const double INF = numeric_limits<double>::max();
+
+Arrangement_2 free_space_arrangement;
+
 
 
 struct Comp{
@@ -117,7 +120,6 @@ bool isCollisionConfiguration(qPoint q) {
 	return areColliding(q.xy1, q.xy2);
 }
 
-//TODO : neeeds testing for non-rectangular outer_obstacle
 bool isLegalPoint(Point_2 p,Arrangement_2 &arr,trapezoidalPl &pl) {
 	auto location = pl.locate(p);
 
@@ -140,14 +142,6 @@ bool isLegalConfiguration(qPoint p,Arrangement_2 &arr,trapezoidalPl &pl) {
 		isLegalPoint(p.xy2, arr, pl) && !isCollisionConfiguration(p);
 }
 
-double dist(qPoint q1, qPoint q2) {
-
-	return std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
-
-}
-
-//return 1 if robot 1 goes first
-//return -1 if robot 2 goes first
 
 int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 
@@ -193,6 +187,21 @@ int localPlanner (qPoint q1 ,qPoint q2,Arrangement_2 &arr ) {
 
 		return 0;
 }
+
+double dist(qPoint q1, qPoint q2) {
+	//TODO: local planner is now calcualted as part of the knn tree, if the result is not 0 (no admissible movement) then saving the result to a matrix should speed up performance
+	// by not requiring re calculation when computing local planner in the path finding.
+
+	if (localPlanner(q1,q2,free_space_arrangement)!=0) {
+	return std::sqrt((q1.xy1-q2.xy1).squared_length().to_double())+std::sqrt((q1.xy2-q2.xy2).squared_length().to_double());
+	} else {
+		return INF;
+	}
+}
+
+//return 1 if robot 1 goes first
+//return -1 if robot 2 goes first
+
 
 std::pair<double,int> cost (qPoint q1, qPoint q2, Arrangement_2 arr) {
 
@@ -348,6 +357,7 @@ vector<Polygon_2> loadPolygons(ifstream &is) {
     return ret;
 }
 
+
 typedef CGAL::Dimension_tag<4> D;
 typedef CGAL::Search_traits<double, qPoint, const double*, Construct_coord_iterator, D> Traits;
 typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
@@ -357,6 +367,9 @@ typedef typename CGAL::Fuzzy_sphere<Traits> Fuzzy_Circle;
 vector<pair<Point_2, Point_2>>
 findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, const Point_2 &end2,
          const Polygon_2 &outer_obstacle, vector<Polygon_2> &obstacles) {
+
+
+	cout<<"there"<<endl;
 
 	int obstacles_size = obstacles.size();
 
@@ -368,7 +381,7 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 	vertices.insert(end2);
 
 	// add all obstacles to polygon set
-	Arrangement_2 free_space_arrangement;
+
 	for(int i = 0; i < obstacles_size; i++) {
 		Polygon_2 obstacle = obstacles.at(i);
 		CGAL::insert(free_space_arrangement,obstacle.edges_begin(),obstacle.edges_end());
@@ -377,42 +390,59 @@ findPath(const Point_2 &start1, const Point_2 &end1, const Point_2 &start2, cons
 
 
 	// create an arrangement from the polygon set
-	//add outer polygon
-	for (auto i=outer_obstacle.edges_begin(); i!=outer_obstacle.edges_end(); i++) {
-		Segment_2 addSeg(i->point(0),i->point(1));
-		CGAL::insert(free_space_arrangement,addSeg);
+	//add outer polygon, if exists
+
+	Arrangement_2::Halfedge_handle OuterEdge;
+
+	bool outerObstacleFlag = true;
+
+	if (outer_obstacle.edges_begin()==outer_obstacle.edges_end()) { // no outer obstacle
+		outerObstacleFlag=false;
+	} else { //add outer polygon
+		Segment_2 addSeg(outer_obstacle.edges_begin()->point(0),outer_obstacle.edges_begin()->point(1));
+		OuterEdge = CGAL::insert_non_intersecting_curve(free_space_arrangement,addSeg);
+		for (auto i=std::next(outer_obstacle.edges_begin(),1); i!=outer_obstacle.edges_end(); i++) {
+			addSeg = Segment_2(i->point(0),i->point(1));
+			CGAL::insert(free_space_arrangement,addSeg);
+		}
+
 	}
+
 
 	//identify obstacle faces
 	// data = true -> face is an obstacle
 	// data = false -> face is not an obstacle
 
 	for (auto i=free_space_arrangement.faces_begin(); i!=free_space_arrangement.faces_end(); i++) {
-		if (i->is_unbounded() || i->number_of_inner_ccbs()>0) {
-		i->set_data(false);
+		if (!outerObstacleFlag && i->is_unbounded()) {
+			i->set_data(false);
 		} else {
-		i->set_data(true);
+			i->set_data(true);
+		}
+		}
+
+	if (outerObstacleFlag) {
+		auto face1 = OuterEdge->face();
+		auto face2 = OuterEdge->twin()->face();
+		if (!(face1->is_unbounded())) {
+			face1->set_data(false);
+		} else {
+			face2->set_data(false);
 		}
 	}
 
 	/*
-
 	//test faces: test passed
-
 int testCounter=0;
 int faceCounter=0;
 	for (auto i=free_space_arrangement.faces_begin(); i!=free_space_arrangement.faces_end(); i++) {
-
 		faceCounter++;
 		if (i->data()==true) {
 			testCounter++;
 		}
-
 	}
-
 	cout<<"there are: "<<testCounter<<" obstacle faces"<<endl;
 	cout<<"out of: "<<faceCounter<<endl;
-
 */
 
 	trapezoidalPl   pl(free_space_arrangement);
@@ -479,7 +509,7 @@ int faceCounter=0;
 
 	tree.insert(V.begin(),V.end());
 	//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.xmin()))*
-	double radius = 25*pow((log2(N)/N),0.25);//*(bbox.xmax()-bbox.xmin());//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.ymin()));
+	double radius = 20*pow((log2(N)/N),0.25);//*(bbox.xmax()-bbox.xmin());//((bbox.xmax()-bbox.xmin())*(bbox.ymax()-bbox.ymin()));
 
 	cout<<"radius: " << radius<<endl;
 
@@ -487,36 +517,35 @@ int faceCounter=0;
 
 	for (qPoint q: V ) { //sorted by index
 
-		Fuzzy_Circle fc(q,radius);
+	//	Fuzzy_Circle fc(q,radius);
 
-		tree.search(std::back_inserter(neighbors[q.index]), fc);
+	//	tree.search(std::back_inserter(neighbors[q.index]), fc);
 
-	//	cout<<"neigbors: "<<neighbors[q.index].size()<<endl;
-
-//		K_neighbor_search search(tree, q, K);
+		K_neighbor_search search(tree, q, K);
 /*
 		for (auto i=search.begin(); i!=search.end(); i++) {
 		neighbors[q.index].push_back((*i).first);
+		}
+*/
+		cout<<"K: "<<K<<endl;
 
 
-
-		}*/
-
-//		for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
-		for (auto q1: neighbors[q.index]) {
-		   // 	qPoint q1 = it->first;
-		    	//neighbors[q.index].push_back(q1);
+		for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
+	//	for (auto q1: neighbors[q.index]) {
+		    	qPoint q1 = it->first;
+		    	neighbors[q.index].push_back(q1);
 			if (q1.index != q.index) {
 		    	neighbors[q1.index].push_back(q);
 			}
 
 		}
+
+		cout<<"neigbors: "<<neighbors[q.index].size()<<endl;
 	}
 
 // check population of neighbors: test passed
 	/*
 	std::cout<<"done finding nodes"<<endl;
-
 	for (auto i: neighbors) {
 		cout<<i.size()<<endl;
 	}
@@ -525,7 +554,6 @@ int faceCounter=0;
 	//test path
 /*
 	Segment_2 seg(Point_2(3,0), Point_2(-5.36459,4.44451));
-
 	std::vector<CGAL::Object> zone_elems;
 	CGAL::zone(free_space_arrangement,seg,std::back_inserter(zone_elems));
 	Arrangement_2::Face_handle face;
@@ -559,19 +587,11 @@ int faceCounter=0;
 	//test Open
 /*
 	f->at(0)=1; f->at(1) = 5; f->at(2)=2; f->at(5)=1;
-
 	Open.insert(0); Open.insert(2); Open.insert(1); Open.insert(5);
-
 	auto k = Open.erase(1);
-
 	f->at(1)=0;
-
 	 Open.insert(1);
-
-
-
 	cout<<"erased: "<<k<<endl;
-
 	for (auto i=Open.begin(); i!=Open.end(); i++) {
 		cout<<*i<<endl;
 		cout<<"testing set"<<endl;
@@ -617,8 +637,6 @@ int faceCounter=0;
 	std::vector<int> path;
 
 
-	//TODO: return path
-
 	if (foundPath) {
 		//reverse path
 		int currInd = 1;
@@ -642,6 +660,8 @@ int faceCounter=0;
 		if(i == path.begin()) {
 			points_path.push_back(pair<Point_2, Point_2>(p1, p2));
 			cout<<p1.x().to_double()<<","<<p1.y().to_double()<<"  "<<p2.x().to_double()<<","<<p2.y().to_double()<<endl;
+			prev1 = p1;
+			prev2 = p2;
 			continue;
 		}
 
@@ -713,4 +733,3 @@ int main(int argc, char *argv[]) {
     outputFile.close();
     return 0;
 }
-

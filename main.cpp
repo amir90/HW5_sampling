@@ -57,10 +57,22 @@ struct qPoint {
 	int index;
 	double vec[4];
 
+	void set(Point_2 set_xy1, Point_2 set_xy2) {
+		xy1 = set_xy1;
+		xy2 = set_xy2;
+		vec[0] = xy1.x().to_double();
+		vec[1] = xy1.y().to_double();
+		vec[2] = xy2.x().to_double();
+		vec[3] = xy2.y().to_double();
+	}
 
 	void set(double x1, double y1, double x2, double y2) {
 		xy1 = Point_2(x1,y1);
 		xy2 = Point_2(x2, y2);
+		vec[0] = x1;
+		vec[1] = y1;
+		vec[2] = x2;
+		vec[3] = y2; 
 	}
 
 	  bool operator==(const qPoint& p) const
@@ -88,19 +100,19 @@ double rand_between(double high, double low) {
 	return low + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(high-low)));
 }
 
+Point_2 newRandomPoint(double xmin, double xmax, double ymin, double ymax) {
+	double x = rand_between(xmin,xmax);
+	double y = rand_between(ymin, ymax);
+
+	return Point_2(x,y);
+}
+
 qPoint newRandomQPoint(double xmin, double xmax, double ymin, double ymax) {
-	double x1 = rand_between(xmin,xmax);
-	double y1 = rand_between(ymin, ymax);
-
-	double x2 = rand_between(xmin,xmax);
-	double y2 = rand_between(ymin, ymax);
-
+	auto xy1 = newRandomPoint(xmin,xmax,ymin,ymax);
+	auto xy2 = newRandomPoint(xmin,xmax,ymin,ymax);
+	
 	qPoint p;
-	p.set(x1,y1,x2,y2);
-	p.vec[0] = x1;
-	p.vec[1] = y1;
-	p.vec[2] = x2;
-	p.vec[3] = y2;
+	p.set(xy1, xy2);
 	return p;
 }
 
@@ -449,20 +461,41 @@ int faceCounter=0;
 	int currInd = 2;
 
 
+			// if(isLegalConfiguration(temp, free_space_arrangement,pl)) {
+			// 	temp.index = currInd;
+			// 	V.push_back(temp);
+			// 	currInd++;
+			// 	currRandPoints++;
+			// 	counter=0;
+			// }
 	//N random configurations
 	// TODO : for faster caculation - if one point is legal and the 
 	//        other doesn't recalculate one instead of both
 	int currRandPoints=0;
 	int counter =0;
+	qPoint q;
  	while (counter < TIMEOUT && currRandPoints<Nrand ) {
-		qPoint temp = newRandomQPoint(xmin,xmax,ymin,ymax);
-			if(isLegalConfiguration(temp, free_space_arrangement,pl)) {
-				temp.index = currInd;
-				V.push_back(temp);
+		if(counter == 1) {
+			q = newRandomQPoint(xmin,xmax,ymin,ymax);
+		}
+
+		Point_2 xy1 = q.xy1, xy2 = q.xy2;
+		if(isLegalPoint(xy1, free_space_arrangement, pl)) {
+			if(isLegalPoint(xy2, free_space_arrangement, pl)) {
+				q.index = currInd;
+				V.push_back(q);
 				currInd++;
 				currRandPoints++;
 				counter=0;
 			}
+
+			else {
+				q.xy2 = newRandomPoint(xmin,xmax,ymin,ymax);
+			}
+		} else {
+			q.xy1 = newRandomPoint(xmin,xmax,ymin,ymax);
+		}
+
 		counter++;
 	}
 
@@ -617,7 +650,6 @@ int faceCounter=0;
 	std::vector<int> path;
 
 
-	//TODO: return path
 
 	if (foundPath) {
 		//reverse path
